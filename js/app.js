@@ -32,7 +32,9 @@
   const groomEn = str(C.groom).trim() || "Groom";
   const brideEn = str(C.bride).trim() || "Bride";
   const tzName = str(C.timeZone).trim() || "Asia/Kolkata";
-  const blessing = str(C.blessing).trim();           /* Kannada blessing line (optional) */
+  /* resolved live so the blessing follows the language (English "Shubha Vivah",
+     Kannada "ಶುಭ ವಿವಾಹ" from the config's `kn.blessing`) */
+  const blessingNow = () => t("blessing").trim();
 
   /* events/contacts keep their original config index so the per-language
      `kn.events` / `kn.contacts` arrays always line up, even if an entry is
@@ -103,6 +105,7 @@
     const introTap = esc(t("intro.tap"));
     const introBottom = esc(t("intro.bottom"));
     const introNames = `${groom} <em>&amp;</em> ${bride}`;
+    const introBlessing = blessingNow();
     const introDate = mainISO ? `<p class="intro-date" data-i18n-date="${esc(mainISO)}" data-i18n-date-opts="${esc(JSON.stringify(DATE_SHORT))}">${esc(fmtDate(mainISO, DATE_SHORT))}</p>` : "";
 
     if (theme === "western") {
@@ -114,14 +117,19 @@
     } else if (theme === "boho") {
       intro.innerHTML = `<div class="seal-card"><small>${introTop}</small><p class="intro-names intro-names-stack">${groom}<br>&amp;<br>${bride}</p>
         <button type="button" class="seal" aria-label="${introTap || esc("Open invitation")}"><span>${esc((groomEn[0] || "") + (brideEn[0] || ""))}</span></button><p>${introTap || esc("Tap the seal")}</p></div>`;
-    } else { /* heritage */
+    } else { /* heritage — a traditional curtain parts to reveal the invitation */
       intro.innerHTML = `<div class="intro-frame">
-        ${blessing ? `<p class="intro-kn kn" lang="kn">${esc(blessing)}</p>` : ""}
+        ${introBlessing ? `<p class="intro-blessing" data-i18n="blessing">${esc(introBlessing)}</p>` : ""}
         <span class="monogram" aria-hidden="true">${esc(monogram)}</span>
         <p class="intro-kicker">${introTop}</p>
         <p class="intro-names">${introNames}</p>
         ${introDate}
-        <button type="button" class="intro-btn">${introTap || esc("Open invitation")}</button>
+      </div>
+      <button type="button" class="intro-btn">${introTap || esc("Open invitation")}</button>
+      <div class="curtain" aria-hidden="true">
+        <span class="curtain-valance"></span>
+        <span class="curtain-l"></span>
+        <span class="curtain-r"></span>
       </div>`;
     }
     return intro.querySelector(".intro-btn, .intro-open, button");
@@ -169,7 +177,7 @@
   invite.innerHTML = `
     <section class="hero">
       ${photo ? "" : `<div class="arch" aria-hidden="true"><span class="monogram">${esc(monogram)}</span></div>`}
-      ${blessing ? `<p class="blessing rv" lang="kn"><span class="kn">${esc(blessing)}</span><i class="mandala" aria-hidden="true"></i></p>` : ""}
+      ${blessingNow() ? `<p class="blessing rv"><span class="blessing-text" data-i18n="blessing">${esc(blessingNow())}</span><i class="mandala" aria-hidden="true"></i></p>` : ""}
       <p class="eyebrow rv" data-i18n="invitationLine">${esc(t("invitationLine"))}</p>
       ${photo}
       <h1 class="names"><span class="n1" data-i18n="groom">${esc(t("groom"))}</span><span class="amp">&amp;</span><span class="n2" data-i18n="bride">${esc(t("bride"))}</span></h1>
@@ -243,6 +251,11 @@
       el.textContent = `${t("groom")} & ${t("bride")}`;
       reinitTypography(el);
     });
+    /* a language can hide the blessing (empty string) while the other shows it */
+    const blessNow = String(t("blessing") || "").trim();
+    document.querySelectorAll(".blessing, .intro-blessing").forEach((el) => {
+      el.hidden = !blessNow;
+    });
     const mBtn = document.getElementById("musicToggle");
     const audio = document.getElementById("bgm");
     if (mBtn) mBtn.textContent = t(audio && !audio.paused ? "ui.pauseMusic" : "ui.playMusic");
@@ -307,23 +320,38 @@
     setTimeout(() => els.forEach(el => el.classList.add("in")), 8000);
   }
 
-  /* ---------- open the invitation (heritage: fast fade; no mandatory multi-second gate) ---------- */
+  /* ---------- open the invitation (heritage: traditional curtain, then a quick fade) ---------- */
   let opened = false;
+  function finishOpening() {
+    if (intro.isConnected) intro.remove();
+    updateScrollProgress();
+    const heading = invite.querySelector("h1");
+    if (heading) {
+      heading.setAttribute("tabindex", "-1");
+      heading.focus({ preventScroll: true });
+    }
+  }
   function openInvitation() {
     if (opened) return; opened = true;
     document.body.classList.add("opened");
-    intro.classList.add("leaving");
     reveal();
-    const wait = reduceMotion ? 100 : (theme === "heritage" ? 450 : 1500);
-    setTimeout(() => {
-      intro.remove();
-      updateScrollProgress();
-      const heading = invite.querySelector("h1");
-      if (heading) {
-        heading.setAttribute("tabindex", "-1");
-        heading.focus({ preventScroll: true });
+    if (theme === "heritage") {
+      if (reduceMotion) {
+        intro.classList.add("leaving");
+        setTimeout(finishOpening, 100);
+      } else {
+        /* the two fabric panels gather towards the edges (≈1.05 s), then the
+           whole overlay fades out so the invitation underneath takes over */
+        intro.classList.add("curtain-starting");
+        intro.getBoundingClientRect();
+        intro.classList.add("curtain-opening");
+        setTimeout(() => intro.classList.add("leaving"), 1050);
+        setTimeout(finishOpening, 1500);
       }
-    }, wait);
+      return;
+    }
+    intro.classList.add("leaving");
+    setTimeout(finishOpening, 1500);
   }
   intro.addEventListener("click", (e) => { if (!e.target.closest("a")) openInvitation(); });
   document.addEventListener("keydown", (e) => {
@@ -404,5 +432,20 @@
         requestAnimationFrame(draw);
       })();
     }
+  }
+
+  /* ---------- opt-in decorative photo tilt ---------- */
+  /* Off by default in config.js: the effect dynamically imports the ~2 MB
+     three.js bundle, which delays a normal first visit for a small flourish.
+     Only a config with `photoTilt: true` pays that cost. */
+  if (C.photoTilt === true) {
+    const tiltCss = document.createElement("link");
+    tiltCss.rel = "stylesheet";
+    tiltCss.href = "css/photo-tilt.css";
+    document.head.appendChild(tiltCss);
+    const tiltJs = document.createElement("script");
+    tiltJs.type = "module";
+    tiltJs.src = "js/photo-tilt.js";
+    document.body.appendChild(tiltJs);
   }
 })();

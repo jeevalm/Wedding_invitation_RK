@@ -16,12 +16,12 @@ window.WEDDING = {
   bride: "Komal",
   groomFamily: "Ummannanavar",                // groom's surname / family name
   brideFamily: "Mahendrakar",                 // bride's surname / family name
-  blessing: "ಶುಭ ವಿವಾಹ",                      // Kannada "Shubha Vivaha" (auspicious wedding) — shown on the intro, hero and booklet; set "" to hide
+  blessing: "Shubha Vivah",                  // shown on the intro, hero and booklet; set "" to hide
   tagline: "are getting married",            // line under the names
   // The bride's family is listed first (bride's side).
   invitationLine: "With joy and blessings, the Mahendrakar and Ummannanavar families invite you to the wedding of",
   // invitationLine: "The Mahendrakar's family joyfully invite you",
-  heroPlace: "Jagajyothi Cultural Centre, Masur, Karnataka",
+  heroPlace: "Jagajyothi Cultural Centre, Masuru, Karnataka",
   couplePhoto: "couplePhoto.jpeg",           // photo file at the project root (1600×1068, landscape)
   bookletPhotos: [                           // the 3D booklet is cover + one page per photo below
     "bookletPhoto-1.jpeg",
@@ -40,13 +40,13 @@ window.WEDDING = {
   // Add / remove events freely. Date & time are formatted automatically from startISO.
   events: [
     { badge: "Pre-wedding", name: "Engagement", startISO: "2026-12-03T19:00:00+05:30", hours: 3,
-      venue: "Jagajyothi Cultural Centre", city: "Masur, Karnataka 581210",
+      venue: "Jagajyothi Cultural Centre", city: "Masuru, Karnataka 581210",
       map: "https://maps.app.goo.gl/uBuS3KwDwVHrGcgN7" },
     { badge: "The Wedding", name: "Marriage", startISO: "2026-12-04T10:30:00+05:30", hours: 4,
-      venue: "Jagajyothi Cultural Centre", city: "Masur, Karnataka 581210",
+      venue: "Jagajyothi Cultural Centre", city: "Masuru, Karnataka 581210",
       map: "https://maps.app.goo.gl/uBuS3KwDwVHrGcgN7" },
     { badge: "Celebration", name: "Reception", startISO: "2026-12-04T19:30:00+05:30", hours: 4,
-      venue: "Jagajyothi Cultural Centre", city: "Masur, Karnataka 581210",
+      venue: "Jagajyothi Cultural Centre", city: "Masuru, Karnataka 581210",
       map: "https://maps.app.goo.gl/uBuS3KwDwVHrGcgN7" }
   ],
 
@@ -65,6 +65,7 @@ window.WEDDING = {
   kn: {
     groom: "ರೋಹನ",
     bride: "ಕೋಮಲ್",
+    blessing: "ಶುಭ ವಿವಾಹ",
 
     intro: { tap: "ತೆರೆಯಲು ಒತ್ತಿರಿ", top: "ನಿಮಗೆ ಆಮಂತ್ರಣ", bottom: "ದಿನಾಂಕ ನೆನಪಿಡಿ" },
     tagline: "ವಿವಾಹವಾಗುತ್ತಿದ್ದಾರೆ",
@@ -74,11 +75,11 @@ window.WEDDING = {
 
     events: [
       { badge: "ಪೂರ್ವ-ವಿವಾಹ", name: "ನಿಶ್ಚಿತಾರ್ಥ",
-        venue: "ಜಗಜ್ಯೋತಿ ಸಾಂಸ್ಕೃತಿಕ ಕೇಂದ್ರ", city: "ಮಸೂರ, ಕರ್ನಾಟಕ 581210" },
+        venue: "ಜಗಜ್ಯೋತಿ ಸಾಂಸ್ಕೃತಿಕ ಕೇಂದ್ರ", city: "ಮಾಸೂರು, ಕರ್ನಾಟಕ 581210" },
       { badge: "ವಿವಾಹ", name: "ಮದುವೆ",
-        venue: "ಜಗಜ್ಯೋತಿ ಸಾಂಸ್ಕೃತಿಕ ಕೇಂದ್ರ", city: "ಮಸೂರ, ಕರ್ನಾಟಕ 581210" },
+        venue: "ಜಗಜ್ಯೋತಿ ಸಾಂಸ್ಕೃತಿಕ ಕೇಂದ್ರ", city: "ಮಾಸೂರು, ಕರ್ನಾಟಕ 581210" },
       { badge: "ಸಂಭ್ರಮ", name: "ಸ್ವಾಗತ ಸಮಾರಂಭ",
-        venue: "ಜಗಜ್ಯೋತಿ ಸಾಂಸ್ಕೃತಿಕ ಕೇಂದ್ರ", city: "ಮಸೂರ, ಕರ್ನಾಟಕ 581210" }
+        venue: "ಜಗಜ್ಯೋತಿ ಸಾಂಸ್ಕೃತಿಕ ಕೇಂದ್ರ", city: "ಮಾಸೂರು, ಕರ್ನಾಟಕ 581210" }
     ],
 
     contacts: [

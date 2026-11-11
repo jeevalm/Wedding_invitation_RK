@@ -51,23 +51,25 @@
   const BOOKLET_EN = {
     kicker: "Leaf through",
     title: "A little book of us",
-    open: "Open 3D invitation",
-    preparing: "Preparing the booklet…",
+    open: "A Glimpse Into Our Love Story ❤️",
+    openLead: "A little album of our photographs — tap to open and turn the pages.",
+    preparing: "Opening the album…",
     preparingPages: "Preparing pages…",
+    preparingPage: "Preparing page {n} of {total}…",
     prev: "← Prev", next: "Next →", close: "Close",
     moments: "Moments",
     momentTitles: ["A little of us", "More of us", "Little moments", "Everyday us", "Just the two of us"],
     hint3d: "Drag or tap a page to turn it · the arrow keys work too",
     hintPlain: "Tap the right side of the booklet to turn pages · the arrow keys work too",
     retry: "Try again",
-    pageLoadError: "One or more pages of the booklet couldn't load — they may come back if the signal steadies. ",
-    openError: "The 3D booklet couldn't open on this device — the invitation below has every detail.",
+    pageLoadError: "One or more pages of the album couldn't load — they may come back if the signal steadies. ",
+    openError: "The photo album couldn't open on this device — the invitation below has every detail.",
     pageOf: "Page {n} of {total}",
     pagesOf: "Pages {first}–{last} of {total}",
     prevAria: "Previous page",
     nextAria: "Next page",
-    closeAria: "Close the 3D booklet",
-    dialogAria: "3D invitation booklet",
+    closeAria: "Close the photo album",
+    dialogAria: "Photo album booklet",
     langAria: "Switch to Kannada"
   };
 
@@ -75,6 +77,7 @@
   const en = {
     groom: trim(C.groom) || "Groom",
     bride: trim(C.bride) || "Bride",
+    blessing: trim(C.blessing),
     intro: {
       top: trim(C.intro && C.intro.top) || "You're invited",
       tap: trim(C.intro && C.intro.tap) || "Open invitation",

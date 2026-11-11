@@ -20,7 +20,14 @@
 [data-theme=heritage] .booklet-sec .bk-status{color:#f5dabf}
 [data-theme=heritage] .booklet-sec .bk-hint{color:#f5dabf;opacity:.75}
 
-.bk-open{margin-top:20px;min-height:44px}
+.bk-actions{margin-top:20px}
+.bk-lead{margin:0 auto 16px;max-width:48ch;font-size:.9rem;line-height:1.7;color:var(--muted,#79685a)}
+[data-theme=heritage] .booklet-sec .bk-lead{color:#f5dabf;opacity:.82}
+.booklet-sec .bk-open{display:inline-flex;align-items:center;justify-content:center;gap:10px;margin-top:0;min-height:48px;padding-inline:24px}
+.booklet-sec .bk-open-icon{width:20px;height:20px;flex:none}
+.booklet-sec .bk-open-label{display:inline-block}
+html[lang=kn] .bk-lead{letter-spacing:0;line-height:1.85}
+html[lang=kn] .booklet-sec .bk-open-label{letter-spacing:0;text-transform:none}
 
 /* Stage: the container LeafThrough renders into (it fits itself inside).
    Portrait / narrow screens get a fixed page-ratio box -> single layout;

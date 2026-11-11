@@ -14,7 +14,7 @@ lives in a single config file; the design reads it and renders everything.
   stacked layout — landscape photo on top, the names on one line (`ROHAN & KOMAL`) with
   tightened, readable labels — and may simply grow on very small or zoomed viewports
   (nothing is ever clipped or hidden). The old "View schedule" shortcut is gone: the guest
-  scrolls on to the countdown, the 3D booklet and then the schedule.
+  scrolls on to the countdown, the photo album and then the schedule.
 - **Scroll typography:** `js/typography.js` + `css/typography.css` implement two native,
   dependency-free effects — a one-shot per-character `rotateX` fold for headings and a
   scroll-linked per-word opacity reveal for invitation copy. Inspired by Codrops
@@ -36,7 +36,7 @@ lives in a single config file; the design reads it and renders everything.
   point `config.js` at your own image, the `srcset` is skipped (rename/re-generate your own
   variants if you want them).
 - **Extra booklet photos:** `bookletPhoto-1.jpeg` … `bookletPhoto-5.jpeg` are the five
-  images shown as "Moments" pages inside the 3D booklet (one page each); edit, reorder or
+  images shown as "Moments" pages inside the photo album (one page each); edit, reorder or
   remove entries in the `bookletPhotos` array in `config.js` to change them.
 
 ## 1. Run it locally
@@ -71,10 +71,14 @@ The invitation ships in two languages with one button.
 - The choice is remembered in `localStorage` (`wedding-lang`); `index.html?lang=kn` opens
   straight into Kannada and is handy for sharing.
 - **English text stays in the top-level fields** of `config.js` (`groom`, `tagline`,
-  `intro`, `events[]`, `contacts[]`, `footer`…). **Kannada text lives in the `kn:` block at
-  the bottom of the same file** — names, intro, tagline, invitation line, hero place,
-  countdown title, `events[]` (badge/name/venue/city), `contacts[]` labels, footer, UI labels
-  (`ui.*`) and booklet labels (`booklet.*`, including `momentTitles`).
+  `intro`, `blessing`, `events[]`, `contacts[]`, `footer`…). **Kannada text lives in the
+  `kn:` block at the bottom of the same file** — names, the blessing (`kn.blessing`), intro,
+  tagline, invitation line, hero place, countdown title, `events[]`
+  (badge/name/venue/city), `contacts[]` labels, footer, UI labels (`ui.*`) and booklet labels
+  (`booklet.*`, including `momentTitles`).
+- The blessing follows the language: the intro, hero and album cover read **Shubha Vivah**
+  in English and **ಶುಭ ವಿವಾಹ** in Kannada. Use `blessing` for the English line and
+  `kn.blessing` for the Kannada one; clear either to hide it in that language.
 - Anything left out of the `kn` block falls back to the English field, so a half-translated
   config can never render an empty label.
 - Dates and times are re-formatted with `kn-IN` / `en-IN`, so weekday and month names change
@@ -90,7 +94,8 @@ Set `theme` in `config.js`, or preview without editing via a URL query:
 
 - `heritage` (default) — cream paper with alternating bordeaux/deep-green bands, bordeaux
   & deep-green typography, tightly-tracked bold uppercase sans headings + sans body.
-  A calm default: fewer web fonts, no ambient particle canvas, quick dismissible intro.
+  A calm default: fewer web fonts, no ambient particle canvas, and an intro whose velvet
+  curtain parts when the guest taps to open.
 - `index.html?theme=western` — saloon-door intro, terracotta
 - `index.html?theme=editorial` — black & white magazine cover
 - `index.html?theme=boho` — sage + blush, wax seal
@@ -99,8 +104,11 @@ Any unknown theme string (config or query) falls back to `heritage`.
 
 ## 4. Behaviour notes
 
-- **Intro** is dismissible: click/tap anywhere, use its button, or press `Escape`. No
-  multi-second forced gate; keyboard focus moves to the names heading after opening.
+- **Intro** is dismissible: click/tap anywhere, use its button, or press `Escape`. On the
+  default theme the tap parts a traditional two-panel velvet curtain (bordeaux folds, gold
+  trim and valance) to reveal the invitation; `prefers-reduced-motion` skips the curtain and
+  fades straight through. No multi-second forced gate; keyboard focus moves to the names
+  heading after opening.
 - **Countdown** runs in `Asia/Kolkata` and counts down to the marriage
   (4 December 2026, 10:30 am). It shows a "Today is the day" message once passed.
 - **Hero photo** is rendered with its intrinsic `width`/`height` (1600×1068, ~400:267),
@@ -116,11 +124,11 @@ Any unknown theme string (config or query) falls back to `heritage`.
 - Respects `prefers-reduced-motion` (no scan animations, no particles); scroll-reveal
   content is never left invisible if the observer doesn't run.
 
-## 4b. Optional 3D booklet ("A little book of us")
+## 4b. Optional 3D photo album ("A little book of us")
 
 `js/booklet.js` adds one extra section (before the schedule) with an explicit
-**Open 3D invitation** button. The button is what loads everything — until it is
-pressed the 3D booklet costs nothing.
+**A Glimpse Into Our Love Story ❤️** button (photo icon + supporting line). The button is what loads
+the library — until it is pressed the album costs no WebGL or three.js work.
 
 - **Pages** are canvases drawn on the spot from `config.js` content and photos in the default
   palette (cream paper, bordeaux/deep-green type, Bricolage Grotesque + Manrope, cream page
@@ -129,9 +137,10 @@ pressed the 3D booklet costs nothing.
   `bookletPhoto-1.jpeg` … `bookletPhoto-5.jpeg`, short titles from
   `kn.booklet.momentTitles` / `booklet.momentTitles`). There is no schedule, venue, family or
   phone page — those stay in the invitation below, so the booklet is a pure album of the
-  couple's photographs. Pages are rasterised only after the page's fonts are ready, at 3× the
-  800-unit design width (2400px) so text and photos stay crisp on high-density phone screens
-  and on the desktop spread.
+  couple's photographs. Pages are rasterised only after the page's fonts are ready, at 2× the
+  800-unit design width (1600px), which still exceeds the native pixel width of the phone and
+  desktop page boxes while using ~45% less texture memory and decode time than a 3× raster.
+  Drawing yields between pages and the status line shows "Preparing page N of 6…".
 - **Photos are never blurred or cropped**: each one is drawn *contained* (its whole frame
   visible) on whole pixels from its full-resolution source, with high-quality smoothing, and
   is never stretched past `MAX_PHOTO_UPSCALE` (2.5× its own natural pixel size). Every
@@ -140,7 +149,11 @@ pressed the 3D booklet costs nothing.
 - **Leaks nothing into the plain page**: the inline (desktop) booklet never locks page scroll and never
   autoplays (the library's `motion: { reducedMotion: "auto" }` follows the guest's
   `prefers-reduced-motion`), `maxPixelRatio` follows the screen's real density (capped
-  at 3) and `preload: 2` to keep it light.
+  at 3) and `preload: 1` keeps only nearby page textures live.
+- **Fast open**: once the section is within ~700px of the viewport, the vendored library and
+  the five photos are fetched as low-priority `prefetch` hints (skipped for Data Saver, 2G and
+  very low-memory devices). Fonts and photos are decoded before rasterising, so pressing the
+  button usually finds everything already in the HTTP cache.
 - **Responsive by the library's own breakpoint**: a two-page spread on
   desktop/large-landscape screens, single portrait pages on phones; stage size
   and `Prev / page count / Next / Close` controls (all ≥ 44px touch targets) are
@@ -157,15 +170,17 @@ pressed the 3D booklet costs nothing.
 - **Clean closing**: Close disposes the WebGL resources; if anything fails, the
   guest sees a readable message and the plain photo as an alternative (the page
   itself always keeps all details, so nothing is lost without the booklet).
-- **Photo tilt (`js/photo-tilt.js` + `css/photo-tilt.css`)**: a subtle, native
-  scroll-driven 3D tilt on the couple photo (three.js from the same import map —
-  no new dependencies). Pure progressive enhancement: the real `<img>` stays the
-  no-JS/no-WebGL fallback and is only visually replaced once the overlay canvas
-  has proven it renders an identical first frame; it follows the live displayed
-  rectangle and the image's `currentSrc` (so the responsive WebP variants work),
-  and pauses whenever the tab is hidden, the photo is offscreen, the body is
-  scroll-locked or the booklet overlay is open. `prefers-reduced-motion`, Data
-  Saver, slow connections and low-memory devices always get the plain photo.
+- **Photo tilt (opt-in)**: set `photoTilt: true` in `config.js` to load
+  `js/photo-tilt.js` + `css/photo-tilt.css` — a subtle, native scroll-driven 3D tilt on the
+  couple photo (three.js from the same import map — no new dependencies). It is **off by
+  default** because it dynamically imports the ~2 MB three.js bundle shortly after the page
+  opens, which is a large cost for a small flourish. When enabled it is still pure
+  progressive enhancement: the real `<img>` stays the no-JS/no-WebGL fallback and is only
+  visually replaced once the overlay canvas has proven it renders an identical first frame;
+  it follows the live displayed rectangle and the image's `currentSrc` (so the responsive WebP
+  variants work), and pauses whenever the tab is hidden, the photo is offscreen, the body is
+  scroll-locked or the booklet overlay is open. `prefers-reduced-motion`, Data Saver, slow
+  connections and low-memory devices always get the plain photo.
 - **Vendored & licensed**: exact pinned copies of `leafthrough@0.1.8` (MIT,
   Dmytro Barylo) and the two modules of `three@0.186.1` (MIT) live under
   `vendor/` — no package manager or build step; see `vendor/README.md` and the
@@ -189,17 +204,28 @@ none is invented here.
 
 ## 6. Latest changes
 
+- **Faster first paint**: the Google Fonts stylesheet no longer blocks rendering (it loads
+  with `media="print"` + `onload` and a `<noscript>` fallback, and stays `display=swap`), so
+  content paints in the fallback face instead of waiting on a third-party request.
+- **Traditional curtain intro** (heritage): two velvet panels with gold trim part to reveal
+  the invitation; `prefers-reduced-motion` skips it.
+- **Bilingual blessing**: the intro, hero and album cover show **Shubha Vivah** in English and
+  **ಶುಭ ವಿವಾಹ** in Kannada, following the language switch (`blessing` / `kn.blessing`).
+- **Clearer album button**: "A Glimpse Into Our Love Story ❤️" with a photo icon and a one-line
+  explanation, in both languages (was "Open 3D invitation").
+- **Faster album**: 2× page raster (was 3×), `preload: 1`, pre-decoded photos, per-page
+  progress, and low-priority prefetch of the library/photos once the section is near.
+- **Photo tilt is opt-in** (`photoTilt: false` by default) so a normal visit never pulls the
+  ~2 MB three.js bundle. See section 4b.
 - **English / ಕನ್ನಡ toggle** (`js/i18n.js`): one pill, remembered per device, all copy and
   dates switch; `?lang=kn` deep-links into Kannada. See section 2b.
-- **Booklet is now a photo album**: cover + one page per `bookletPhotos` entry (6 pages by
+- **Album is a photo album**: cover + one page per `bookletPhotos` entry (6 pages by
   default) — no schedule, venue, family or phone page. Switching language while it is open
   rebuilds the pages; photos are contained on whole pixels and never over-upscaled.
 - **Hero shortcut removed**: no "View schedule" button; the flow is hero → countdown →
-  3D booklet → schedule.
+  photo album → schedule.
 - **Kannada typography**: Noto Sans/Serif Kannada, word-level (not glyph-level) scroll
   effects and whole-string canvas drawing so conjuncts and matras stay intact.
-- **Kannada blessing** "ಶುಭ ವಿವಾಹ" on the intro screen, the hero and the booklet cover. Edit or clear it with
-  `blessing` in `config.js`; the Noto Serif Kannada font is loaded in `index.html`.
 - **Phone icons** on the contact buttons.
 - **Mandala ornament** replaces the diamond in all dividers (CSS mask in `css/style.css`; canvas flower in `js/booklet.js`).
 - **Booklet:** cover/spread are centred (`centerBook()` in `js/booklet.js`), pages sit directly on the maroon band, the

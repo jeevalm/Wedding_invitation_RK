@@ -1,31 +1,36 @@
 /* ==========================================================================
-   js/booklet.js — optional 3D booklet ("A little book of us").
+   js/booklet.js — optional 3D photo album ("A little book of us").
 
    Adds one extra section before the schedule (or after the countdown), with an
-   explicit "Open 3D invitation" button. The button is what loads the library
+   explicit "A Glimpse Into Our Love Story ❤️" button. The button is what loads the library
    and rasterises the pages — nothing happens before it is pressed.
 
    - Page order: front cover + one photo-only "Moments" page per configured
      `bookletPhotos` entry (all five by default). No schedule, no venue and no
-     phone numbers: those stay in the normal page below, so the booklet is a
-     pure album of the couple's photographs.
+     phone numbers: those stay in the normal page below, so the album is a
+     pure collection of the couple's photographs.
    - Every label on the section, the bar and the drawn pages follows the
      guest's language (js/i18n.js, English / ಕನ್ನಡ); switching language while
      the book is open rebuilds its pages in the new language.
+   - The blessing follows the language too: English "Shubha Vivah" or Kannada
+     "ಶುಭ ವಿವಾಹ" (config `blessing` / `kn.blessing`).
    - LeafThrough is vendored, pinned (see vendor/README.md + LICENSE files):
        ../vendor/leafthrough/dist/index.js  (MIT, Dmytro Barylo)
        ../vendor/three/build/three.module.js (MIT, three.js authors)
      An import map in index.html maps the bare "three" import to the vendored
-     copy. Both files are dynamic-imported here and only on demand.
+     copy. Both files are dynamic-imported here and only on demand; low-priority
+     prefetches warm them once the section is near.
    - Layout "auto": spread (min-width 768px + landscape) / single everywhere
-     else. maxPixelRatio follows the device (capped at 3), preload 2, bleed on
+     else. maxPixelRatio follows the device (capped at 3), preload 1, bleed on
      (the library's spill fits the real page size and, per its docs, never adds
      a horizontal scrollbar — a bleed:false container halves the pages' width),
      loop off, motion reducedMotion "auto". No page-scroll is ever locked.
-   - Page canvases draw at 3× their 800-unit design width, so text and photos
-     stay crisp on 2×/3× phone screens. Photos are contained (never cropped),
-     drawn on whole pixels, and never upscaled past MAX_PHOTO_UPSCALE × their
-     own natural size — a small source is shown smaller instead of blurring.
+   - Page canvases draw at 2× their 800-unit design width (1600px), which still
+     exceeds the native pixel width of both phone and desktop page boxes, so
+     text and photos stay crisp while texture memory/decode time stay low. Photos
+     are contained (never cropped), drawn on whole pixels, and never upscaled
+     past MAX_PHOTO_UPSCALE × their own natural size — a small source is shown
+     smaller instead of blurring.
    - Closing (Close button / Escape) disposes the WebGL resources.
    - If anything fails, the guest gets a readable message and the plain photo
      as an alternative; essential text always lives in the DOM elsewhere.
@@ -64,7 +69,9 @@
   const introTopNow = () => t("intro.top").trim() || "You're invited";
   const taglineNow = () => t("tagline").trim();
   const monogram = ((groomEn[0] || "").toUpperCase() + "·" + (brideEn[0] || "").toUpperCase()).replace(/[^A-Z·]/g, "");
-  const blessing = str(C.blessing).trim();          /* Kannada blessing (optional) */
+  /* the blessing follows the selected language: English "Shubha Vivah",
+     Kannada "ಶುಭ ವಿವಾಹ" (config `blessing` / `kn.blessing`) */
+  const blessingNow = () => t("blessing").trim();
   /* one inside page per configured photo — a custom config can add or remove
      them; missing files are simply skipped, never a blank page */
   const bookletPhotos = (Array.isArray(C.bookletPhotos) ? C.bookletPhotos : [])
@@ -76,7 +83,12 @@
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   /* ---------- section markup, inserted before #schedule (fallbacks below) ---------- */
-  const openLabel = () => t("booklet.open") || "Open 3D invitation";
+  const openLabel = () => t("booklet.open") || "A Glimpse Into Our Love Story ❤️";
+  const openLeadNow = () => t("booklet.openLead") || "A little album of our photographs — tap to open and turn the pages.";
+  /* a photo-stack icon makes the control read as an album, not a generic button */
+  const ALBUM_ICON = `<svg class="bk-open-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="currentColor" d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5Zm2 0v9.2l3.1-3.1a1 1 0 0 1 1.4 0l2.3 2.3 2.1-2.1a1 1 0 0 1 1.4 0L18 12.6V5H6Zm12 12v-1.5l-2.2-2.2-2.1 2.1a1 1 0 0 1-1.4 0l-2.3-2.3L6 16.9V19h12ZM9 9.5A1.5 1.5 0 1 1 9 6.5a1.5 1.5 0 0 1 0 3Z"/></svg>`;
+  const openButtonHTML = () => `${ALBUM_ICON}<span class="bk-open-label">${esc(openLabel())}</span>`;
+  const buttonHTML = (label) => `${ALBUM_ICON}<span class="bk-open-label">${esc(label)}</span>`;
   const photoPath = str(C.couplePhoto).trim();
   const section = document.createElement("section");
   section.className = "booklet-sec";
@@ -88,7 +100,8 @@
       <span class="orn" aria-hidden="true"><i></i><b></b><i></i></span>
     </header>
     <div class="bk-actions">
-      <button type="button" class="btn bk-open" id="booklet-open">${esc(openLabel())}</button>
+      <p class="bk-lead" id="booklet-lead">${esc(openLeadNow())}</p>
+      <button type="button" class="btn bk-open" id="booklet-open">${openButtonHTML()}</button>
     </div>
     <div class="bk-stage" id="booklet-stage" hidden></div>
     <div class="bk-bar" id="booklet-bar" hidden>
@@ -114,6 +127,7 @@
 
   const $ = (s, r) => r.querySelector(s);
   const btn = $("#booklet-open", section);
+  const lead = $("#booklet-lead", section);
   const stage = $("#booklet-stage", section);
   const bar = $("#booklet-bar", section);
   const countEl = $("#booklet-count", section);
@@ -133,16 +147,16 @@
      flash of fallback glyphs.
 
      The backing store is rasterised at PAGE_RASTER× while every layout
-     coordinate below stays in the 800-unit design space. On a 3× phone the
-     page is ~390 CSS px wide (= ~1170 device px); on a 2× desktop the
-     booklet's bleed makes each page ~677 CSS px (= ~1354 device px). The old
-     1.6× raster (1280 px) was therefore being stretched, and small body text
-     read as blur. 3× (2400 px) gives the texture real headroom for both, while
-     the library's preload radius still keeps the number of live textures down.
+     coordinate below stays in the 800-unit design space. On a phone the page
+     is ~390 CSS px wide (= ~1170 device px at 3×); on a desktop the booklet's
+     bleed makes each page ~677 CSS px (= ~1354 device px at 2×). 2× (1600 px)
+     therefore still exceeds the native pixel width of both, so text stays
+     crisp while the six textures use ~45% less memory and decode time than the
+     old 3× raster. (Preload is kept at 1 so only nearby pages stay live.)
      ========================================================================== */
   const PAGE_W = 800;
   const PAGE_H = Math.round(PAGE_W * 1.377);
-  const PAGE_RASTER = 3;
+  const PAGE_RASTER = 2;
   const T = {
     bg: "#f5dabf",          /* cream paper, a shade inside the page bg */
     panel: "#faecd9",       /* photo card */
@@ -176,7 +190,11 @@
 
   async function ensureFonts() {
     try {
-      if (blessing) await document.fonts.load(`700 48px "${F_KN}"`, blessing).catch(() => {});
+      const bless = blessingNow();
+      if (bless) {
+        if (knNow()) await document.fonts.load(`700 48px "${F_KN}"`, bless).catch(() => {});
+        else await document.fonts.load(`600 40px "${F_DISP}"`, bless).catch(() => {});
+      }
       const reqs = [
         `500 60px "${F_DISP}"`, `600 60px "${F_DISP}"`, `700 60px "${F_DISP}"`,
         `400 26px "${F_BODY}"`, `500 26px "${F_BODY}"`, `700 26px "${F_BODY}"`
@@ -263,10 +281,19 @@
     flower(ctx, cx, y + 1, 13);
   };
   const blessingLine = (ctx, cx, y, size) => {
+    const text = blessingNow();
+    if (!text) return;
     ctx.save();
-    ctx.font = `700 ${size}px ${KN_STACK}`; ctx.fillStyle = T.maroon;
     ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
-    ctx.fillText(blessing, cx, y);
+    if (knNow()) {
+      ctx.font = `700 ${size}px ${KN_STACK}`; ctx.fillStyle = T.maroon;
+      ctx.fillText(text, cx, y);
+    } else {
+      /* English: a taller, letter-spaced display line (drawn as individual
+         glyphs by spaced(), which is safe for Latin) */
+      ctx.font = `600 ${Math.round(size * 0.72)}px "${F_DISP}"`; ctx.fillStyle = T.maroon;
+      spaced(ctx, text.toUpperCase(), cx, y - Math.round(size * 0.1), 5);
+    }
     ctx.restore();
   };
   const folio = (ctx, cx, n) => {
@@ -284,9 +311,10 @@
     const { cv, ctx } = page();
     const groom = groomNow(), bride = brideNow();
     const introTop = introTopNow(), tagline = taglineNow(), heroDate = heroDateNow();
+    const bless = blessingNow();
     paintBase(ctx); paintFrame(ctx);
     const cx = PAGE_W / 2;
-    if (blessing) blessingLine(ctx, cx, 128, 50);
+    if (bless) blessingLine(ctx, cx, 128, 50);
     ctx.strokeStyle = T.goldSoft; ctx.lineWidth = 1.5; circle(ctx, cx, 236, 72);
     ctx.lineWidth = 0.75; circle(ctx, cx, 236, 64);
     ctx.fillStyle = T.maroon; ctx.font = `700 46px "${F_DISP}"`;
@@ -310,7 +338,7 @@
     return {
       src: cv,
       alt: `Front cover — ${groom} and ${bride}${heroDate ? ", " + heroDate : ""}`,
-      text: [blessing, introTop, `${groom} & ${bride}`, tagline, heroDate]
+      text: [bless, introTop, `${groom} & ${bride}`, tagline, heroDate]
         .filter(Boolean).join("\n\n")
     };
   }
@@ -382,6 +410,8 @@
     };
   }
 
+  const yieldToUI = () => new Promise((resolve) => setTimeout(resolve, 0));
+
   /* ---------- lazy load the pinned, vendored copies ---------- */
   async function loadLibrary() {
     const url = new URL("../vendor/leafthrough/dist/index.js", import.meta.url).href;
@@ -393,7 +423,12 @@
     return new Promise((resolve) => {
       const img = new Image();
       img.decoding = "async";
-      img.onload = () => resolve(img);
+      img.onload = async () => {
+        /* decode now, off the main thread where supported, so the canvas
+           draw below is a plain blit instead of a late decode */
+        try { await img.decode(); } catch { /* older browser: draw still works */ }
+        resolve(img);
+      };
       img.onerror = () => resolve(null);
       img.src = src;
     });
@@ -427,7 +462,7 @@
     overlay.tabIndex = -1;
     overlay.setAttribute("role", "dialog");
     overlay.setAttribute("aria-modal", "true");
-    overlay.setAttribute("aria-label", `${t("booklet.dialogAria") || "3D invitation booklet"} — ${groomNow()} & ${brideNow()}`);
+    overlay.setAttribute("aria-label", `${t("booklet.dialogAria") || "Photo album booklet"} — ${groomNow()} & ${brideNow()}`);
     overlay.hidden = true;
     document.body.appendChild(overlay);           /* a body child: immune to any ancestor transform */
     return overlay;
@@ -543,11 +578,13 @@
     closeBtn.textContent = t("booklet.close") || "Close";
     prevBtn.setAttribute("aria-label", t("booklet.prevAria") || "Previous page");
     nextBtn.setAttribute("aria-label", t("booklet.nextAria") || "Next page");
-    closeBtn.setAttribute("aria-label", t("booklet.closeAria") || "Close the 3D booklet");
+    closeBtn.setAttribute("aria-label", t("booklet.closeAria") || "Close the photo album");
     langBtn.textContent = t("ui.langSwitch") || "EN";
     langBtn.setAttribute("aria-label", t("booklet.langAria") || "Switch language");
     langBtn.setAttribute("lang", I18N && I18N.lang === "en" ? "kn" : "en");
     langBtn.setAttribute("aria-pressed", I18N && I18N.lang === "kn" ? "true" : "false");
+    if (lead) lead.textContent = openLeadNow();
+    if (state === "idle") btn.innerHTML = openButtonHTML();
     const title = section.querySelector(".sec-head h2");
     const titleText = t("booklet.title") || "A little book of us";
     if (title && title.textContent.trim() !== titleText.trim()) title.textContent = titleText;
@@ -588,7 +625,7 @@
     status.hidden = false;
     section.setAttribute("aria-busy", "false");
     btn.disabled = false;
-    btn.textContent = openLabel();
+    btn.innerHTML = openButtonHTML();
     btn.hidden = false;
     fallbackFig.hidden = !fallbackFig.querySelector("img");
   }
@@ -597,7 +634,7 @@
     if (state !== "idle") return;
     state = "loading";
     btn.disabled = true;
-    btn.textContent = t("booklet.preparing") || "Preparing the booklet…";
+    btn.innerHTML = buttonHTML(t("booklet.preparing") || "Opening the album…");
     section.setAttribute("aria-busy", "true");
     showStatus(t("booklet.preparingPages") || "Preparing pages…");
     try {
@@ -613,11 +650,20 @@
       builtLang = I18N ? I18N.lang : "en";
       const configured = t("booklet.momentTitles");
       const titles = Array.isArray(configured) ? configured : [];
+      const totalPages = 1 + bookletPhotos.length;
       const pages = [drawCover()];
-      extraPhotos.filter(Boolean).forEach((p, idx) => {
+      await yieldToUI();
+      const usable = extraPhotos.filter(Boolean);
+      for (let idx = 0; idx < usable.length; idx++) {
+        const n = idx + 2;
+        const label = t("booklet.preparingPage", { n, total: totalPages });
+        if (label) showStatus(label);
+        /* let the status paint before the next rasterisation (and keep the
+           first photo page ready as soon as possible) */
+        await yieldToUI();
         const title = str(titles[idx]).trim() || (idx === 0 ? (t("booklet.moments") || "Moments") : "");
-        pages.push(drawMoment(p, pages.length + 1, title));
-      });
+        pages.push(drawMoment(usable[idx], pages.length + 1, title));
+      }
       /* cream page edges, matching the redrawn palette (paper.backColor is a
          documented LeafThrough material option) */
       /* size the stage before the magazine measures it (display:none boxes are 0×0).
@@ -636,7 +682,7 @@
         /* never below 2: on a 1× laptop screen the pages are drawn at double size and
            the browser scales them down, which keeps small text crisp instead of soft */
         maxPixelRatio: Math.min(3, Math.max(2, window.devicePixelRatio || 1)),
-        preload: 2,
+        preload: 1,
         /* crisp paper: matte, no grain speckle over the text, no ghosting from
            the reverse side on phones, and no surface wrinkles. The cream
            colour and the page-turn lighting still keep the paper look. */
@@ -658,7 +704,7 @@
           ambient: { intensity: 1.9, ground: "#cbbfa8" },
           sun: { intensity: 1.35 }
         },
-        label: `${t("booklet.dialogAria") || "3D invitation booklet"} — ${groomNow()} & ${brideNow()}`,
+        label: `${t("booklet.dialogAria") || "Photo album booklet"} — ${groomNow()} & ${brideNow()}`,
         motion: { reducedMotion: "auto" },
         onReady: () => {
           hideStatus();
@@ -698,7 +744,7 @@
       if (builtLang !== (I18N ? I18N.lang : "en")) setTimeout(rebuildBooklet, 0);
     } catch (err) {
       state = "idle";
-      fatal(`${t("booklet.openError") || "The 3D booklet couldn't open on this device — the invitation below has every detail."} ${err && err.message ? "(" + err.message + ")" : ""}`);
+      fatal(`${t("booklet.openError") || "The photo album couldn't open on this device — the invitation below has every detail."} ${err && err.message ? "(" + err.message + ")" : ""}`);
     }
   }
 
@@ -796,7 +842,7 @@
     state = "idle";
     section.setAttribute("aria-busy", "false");
     btn.disabled = false;
-    btn.textContent = openLabel();
+    btn.innerHTML = openButtonHTML();
     btn.hidden = false;
     document.removeEventListener("keydown", onEsc);
     try { btn.focus({ preventScroll: true }); } catch { /* fine */ }
@@ -812,11 +858,46 @@
   window.addEventListener("wedding:langchange", () => {
     paintBar();
     refreshSectionHead();
-    btn.textContent = openLabel();
+    if (state === "idle") btn.innerHTML = openButtonHTML();
     if (state === "open") rebuildBooklet();
     else if (state === "idle") hint.textContent = hintText();
   });
   paintBar();
+
+  /* ---------- warm the album's assets once its section is approaching ---------- */
+  /* The 3D library is ~2 MB and the five photos ~0.8 MB. Fetching them as
+     low-priority prefetches while the guest is still reading means the Open
+     button usually finds everything in the HTTP cache. Data Saver, 2G and
+     very low-memory devices are left alone: there the click loads normally. */
+  let warmed = false;
+  function warmBookletCache() {
+    if (warmed) return;
+    warmed = true;
+    if (state !== "idle") return;
+    const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (c && (c.saveData || /(^|-)2g$/.test(String(c.effectiveType || "")))) return;
+    if (typeof navigator.deviceMemory === "number" && navigator.deviceMemory < 2) return;
+    const urls = [
+      new URL("../vendor/leafthrough/dist/index.js", import.meta.url).href,
+      new URL("../vendor/three/build/three.module.js", import.meta.url).href,
+      new URL("../vendor/three/build/three.core.js", import.meta.url).href
+    ].concat(bookletPhotos.map((p) => new URL(p, document.baseURI).href));
+    urls.forEach((href) => {
+      const hint = document.createElement("link");
+      hint.rel = "prefetch";
+      hint.as = /\.js(\?|$)/i.test(href) ? "script" : "image";
+      hint.href = href;
+      document.head.appendChild(hint);
+    });
+  }
+  if ("IntersectionObserver" in window) {
+    const warmObs = new IntersectionObserver((entries, obs) => {
+      if (entries.some((e) => e.isIntersecting)) { obs.disconnect(); warmBookletCache(); }
+    }, { rootMargin: "700px 0px" });
+    warmObs.observe(section);
+  } else {
+    setTimeout(warmBookletCache, 6000);
+  }
 
   /* clean page state if the module is ever torn down mid-session (defensive) */
   window.addEventListener("pagehide", () => {
